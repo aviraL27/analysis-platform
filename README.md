@@ -2,24 +2,6 @@
 
 Analytiq is a self-hostable analytics platform: a small browser SDK sends events to an ingestion API, Redis/BullMQ buffers the write path, workers enrich and persist events into TimescaleDB, and a dashboard API/frontend will expose realtime and historical analytics per tenant.
 
-## Current Build Status
-
-Implemented:
-
-- Monorepo with npm workspaces and Turborepo
-- Shared TypeScript config and shared types package
-- PostgreSQL/TimescaleDB schema migration
-- Ingestion API with validation, Redis token cache, domain checks, rate limiting, and BullMQ publishing
-- Worker with 50-event batching, user-agent parsing, IP anonymization, bulk inserts, and realtime event emission
-
-Not implemented yet:
-
-- Dashboard API
-- SDK behavior
-- React dashboard UI
-- `.env.example`
-- Docker Compose local services
-
 ## Architecture
 
 ```mermaid
@@ -129,10 +111,10 @@ erDiagram
 ```text
 apps/
   ingestion-api/    Express API that receives and queues events
-  dashboard-api/    Placeholder for stats/auth/realtime API
+  dashboard-api/    Stats/auth/realtime API
   worker/           BullMQ consumer that writes batches to TimescaleDB
-  frontend/         Placeholder React dashboard
-  sdk/              Placeholder browser SDK
+  frontend/         React dashboard
+  sdk/              Browser SDK
 packages/
   db/               PostgreSQL client helpers and migrations
   types/            Shared TypeScript contracts
@@ -145,7 +127,7 @@ packages/
 - Redis
 - PostgreSQL with TimescaleDB extension available
 
-Docker Compose is not added yet, but the expected local services are Redis on `localhost:6379` and Postgres/TimescaleDB with a database named `analytiq`.
+Local services are Redis on `localhost:6379` and Postgres/TimescaleDB with a database named `analytiq`.
 
 ## Environment
 
@@ -243,8 +225,6 @@ The ingestion API validates payloads, checks tenant token/domain/rate limit, enq
 
 ## Security Model
 
-Implemented so far:
-
 - Zod validation on ingestion and worker queue payloads
 - Helmet on ingestion API
 - Redis token cache
@@ -253,19 +233,7 @@ Implemented so far:
 - Parameterized SQL
 - RLS enabled on project tables
 - IP anonymization before event storage
-
-Planned in dashboard API:
-
 - Supabase JWT verification middleware
 - Tenant ID derived from authenticated user context
 - Tenant-scoped queries on every route
 - Socket.io tenant rooms
-
-## Next Development Step
-
-Build `apps/dashboard-api`:
-
-- Auth middleware
-- REST stats endpoints
-- Tenant setup/domain routes
-- Socket.io server for dashboard clients and worker events
