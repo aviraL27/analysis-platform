@@ -1,0 +1,29 @@
+{
+  "name": "@analytiq/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/index.ts",
+    "lint": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@analytiq/db": "0.1.0",
+    "@analytiq/types": "0.1.0",
+    "bullmq": "^5.12.10",
+    "dotenv": "^16.4.5",
+    "ioredis": "^5.4.1",
+    "pg": "^8.12.0",
+    "socket.io-client": "^4.7.5",
+    "ua-parser-js": "^1.0.38",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.6",
+    "@types/ua-parser-js": "^0.7.39",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
+  }
+}

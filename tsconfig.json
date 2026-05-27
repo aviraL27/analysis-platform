@@ -1,0 +1,12 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/db" },
+    { "path": "./apps/ingestion-api" },
+    { "path": "./apps/dashboard-api" },
+    { "path": "./apps/worker" },
+    { "path": "./apps/sdk" },
+    { "path": "./apps/frontend" }
+  ]
+}
