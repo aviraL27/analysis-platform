@@ -15,6 +15,7 @@ import {
 import {
   dashboardApi,
   type EventLogRow,
+  type Funnel,
   type OverviewStats,
   type RangeKey,
   type RealtimeStats,
@@ -208,6 +209,81 @@ function Ranking({ title, rows }: { title: string; rows: { value: string; count:
   );
 }
 
+function FunnelsPanel({
+  token,
+  funnels,
+  onFunnel
+}: {
+  token: string;
+  funnels: Funnel[];
+  onFunnel: (funnel: Funnel) => void;
+}) {
+  const [name, setName] = useState("Signup conversion");
+  const [steps, setSteps] = useState("pageview\nsignup\nupgrade");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function create() {
+    setSaving(true);
+    setError(null);
+
+    try {
+      const parsedSteps = steps
+        .split(/\r?\n|,/)
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .map((event) => ({ event }));
+      const result = await dashboardApi.createFunnel(token, name, parsedSteps);
+      onFunnel(result.funnel);
+    } catch (funnelError) {
+      setError(funnelError instanceof Error ? funnelError.message : "Could not create funnel");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel wide" id="funnels">
+      <div className="panel-heading">
+        <h2>Funnels</h2>
+      </div>
+      <div className="funnels">
+        <div className="funnels-form">
+          <label className="field">
+            <span>Funnel name</span>
+            <input value={name} onChange={(event) => setName(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Steps (one per line)</span>
+            <textarea
+              rows={4}
+              value={steps}
+              onChange={(event) => setSteps(event.target.value)}
+              placeholder="pageview\nsignup\npurchase"
+            />
+          </label>
+          {error ? <p className="error">{error}</p> : null}
+          <button className="primary" onClick={() => void create()} disabled={saving}>
+            {saving ? "Saving..." : "Create funnel"}
+          </button>
+        </div>
+        <div className="funnels-list">
+          {funnels.length === 0 ? <p className="muted">No funnels yet.</p> : null}
+          {funnels.map((funnel) => (
+            <div className="funnel-row" key={funnel.id}>
+              <div>
+                <strong>{funnel.name}</strong>
+                  <span>{funnel.steps.map((step) => step.event).join(" -> ")}</span>
+              </div>
+              <span className="muted">{new Date(funnel.createdAt).toLocaleDateString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function DomainsEditor({
   token,
   tenant,
@@ -307,6 +383,7 @@ export function App() {
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([]);
   const [realtime, setRealtime] = useState<RealtimeStats>(emptyRealtime);
   const [events, setEvents] = useState<EventLogRow[]>([]);
+  const [funnels, setFunnels] = useState<Funnel[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -329,18 +406,20 @@ export function App() {
     setError(null);
 
     try {
-      const [tenantResult, nextOverview, nextTimeseries, nextRealtime, nextEvents] = await Promise.all([
+      const [tenantResult, nextOverview, nextTimeseries, nextRealtime, nextEvents, nextFunnels] = await Promise.all([
         dashboardApi.tenant(accessToken),
         dashboardApi.overview(accessToken, range),
         dashboardApi.timeseries(accessToken, range, eventName),
         dashboardApi.realtime(accessToken),
-        dashboardApi.events(accessToken)
+        dashboardApi.events(accessToken),
+        dashboardApi.funnels(accessToken)
       ]);
       setTenant(tenantResult.tenant);
       setOverview(nextOverview);
       setTimeseries(nextTimeseries.points);
       setRealtime(nextRealtime);
       setEvents(nextEvents.events);
+      setFunnels(nextFunnels.funnels);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Could not load dashboard");
     } finally {
@@ -385,6 +464,7 @@ export function App() {
     setTimeseries([]);
     setRealtime(emptyRealtime);
     setEvents([]);
+    setFunnels([]);
     setLiveEvents([]);
     setError(null);
   }
@@ -407,6 +487,7 @@ export function App() {
         <nav>
           <a href="#overview">Overview</a>
           <a href="#events">Events</a>
+          <a href="#funnels">Funnels</a>
           <a href="#tenant">Tenant</a>
         </nav>
         <div className="session-box">
@@ -479,6 +560,10 @@ export function App() {
               ))}
             </div>
           </section>
+
+          <FunnelsPanel token={accessToken} funnels={funnels} onFunnel={(funnel) => {
+            setFunnels((current) => [funnel, ...current]);
+          }} />
 
           <div id="tenant">{tenant ? <DomainsEditor token={accessToken} tenant={tenant} onTenant={setTenant} /> : null}</div>
           <div id="events" className="wide">

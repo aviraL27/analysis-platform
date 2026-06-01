@@ -23,3 +23,12 @@ export const tenantSetupSchema = z.object({
 export const tenantDomainsSchema = z.object({
   domains: z.array(z.string().trim().min(1).max(255)).max(50)
 });
+
+export const funnelStepSchema = z.object({
+  event: z.string().trim().min(1).max(120)
+});
+
+export const funnelCreateSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  steps: z.array(funnelStepSchema).min(1).max(12)
+});

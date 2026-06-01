@@ -43,6 +43,17 @@ export interface EventLogRow {
   browser: string | null;
 }
 
+export interface FunnelStep {
+  event: string;
+}
+
+export interface Funnel {
+  id: string;
+  name: string;
+  steps: FunnelStep[];
+  createdAt: string;
+}
+
 const apiBaseUrl = import.meta.env.VITE_DASHBOARD_API_URL ?? "http://localhost:3002";
 
 async function request<T>(token: string, path: string, init: RequestInit = {}): Promise<T> {
@@ -100,5 +111,14 @@ export const dashboardApi = {
       token,
       `/events?limit=${limit}&offset=${offset}`
     );
+  },
+  funnels(token: string) {
+    return request<{ funnels: Funnel[] }>(token, "/funnels");
+  },
+  createFunnel(token: string, name: string, steps: FunnelStep[]) {
+    return request<{ funnel: Funnel }>(token, "/funnels", {
+      method: "POST",
+      body: JSON.stringify({ name, steps })
+    });
   }
 };

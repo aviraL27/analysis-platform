@@ -45,6 +45,17 @@ export interface EventLogRow {
   browser: string | null;
 }
 
+export interface FunnelStep {
+  event: string;
+}
+
+export interface FunnelRecord {
+  id: string;
+  name: string;
+  steps: FunnelStep[];
+  createdAt: string;
+}
+
 function rangeStart(range: RangeKey): Date {
   const now = Date.now();
 
@@ -351,5 +362,57 @@ export async function getEventLog(
         browser: event.browser
       };
     });
+  });
+}
+
+export async function listFunnels(pool: Pool, tenantId: string): Promise<FunnelRecord[]> {
+  return withTenantClient(pool, tenantId, async (client) => {
+    const result = await client.query(
+      `
+        SELECT id::TEXT AS id, name, steps, created_at
+        FROM funnels
+        WHERE tenant_id = $1
+        ORDER BY created_at DESC
+      `,
+      [tenantId]
+    );
+
+    return result.rows.map((row) => {
+      const funnel = row as { id: string; name: string; steps: FunnelStep[] | string; created_at: Date };
+      const steps = typeof funnel.steps === "string" ? (JSON.parse(funnel.steps) as FunnelStep[]) : funnel.steps;
+      return {
+        id: funnel.id,
+        name: funnel.name,
+        steps,
+        createdAt: funnel.created_at.toISOString()
+      };
+    });
+  });
+}
+
+export async function createFunnel(
+  pool: Pool,
+  tenantId: string,
+  name: string,
+  steps: FunnelStep[]
+): Promise<FunnelRecord> {
+  return withTenantClient(pool, tenantId, async (client) => {
+    const result = await client.query(
+      `
+        INSERT INTO funnels (tenant_id, name, steps)
+        VALUES ($1, $2, $3)
+        RETURNING id::TEXT AS id, name, steps, created_at
+      `,
+      [tenantId, name, JSON.stringify(steps)]
+    );
+    const row = result.rows[0] as { id: string; name: string; steps: FunnelStep[] | string; created_at: Date };
+    const parsedSteps = typeof row.steps === "string" ? (JSON.parse(row.steps) as FunnelStep[]) : row.steps;
+
+    return {
+      id: row.id,
+      name: row.name,
+      steps: parsedSteps,
+      createdAt: row.created_at.toISOString()
+    };
   });
 }

@@ -1,5 +1,28 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "DATABASE_URL",
+    "DATABASE_POOL_MAX",
+    "DATABASE_SSL",
+    "REDIS_URL",
+    "EVENTS_QUEUE_NAME",
+    "INGESTION_API_PORT",
+    "TENANT_CACHE_TTL_SECONDS",
+    "INGEST_RATE_LIMIT_MAX",
+    "INGEST_RATE_LIMIT_WINDOW_SECONDS",
+    "WORKER_BATCH_SIZE",
+    "WORKER_BATCH_FLUSH_INTERVAL_MS",
+    "WORKER_CONCURRENCY",
+    "DASHBOARD_API_PORT",
+    "FRONTEND_ORIGIN",
+    "SUPABASE_JWT_SECRET",
+    "SUPABASE_URL",
+    "DASHBOARD_WORKER_TOKEN",
+    "DASHBOARD_REALTIME_URL",
+    "VITE_DASHBOARD_API_URL",
+    "VITE_SUPABASE_URL",
+    "VITE_SUPABASE_ANON_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

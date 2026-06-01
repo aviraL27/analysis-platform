@@ -6,16 +6,19 @@ import { ZodError } from "zod";
 import { createAuthMiddleware, requireAuth } from "./auth.js";
 import type { DashboardConfig } from "./config.js";
 import {
+  createFunnel,
   getEventLog,
   getOverviewStats,
   getRealtimeStats,
   getTenantForUser,
   getTimeseries,
+  listFunnels,
   setupTenant,
   updateTenantDomains
 } from "./db.js";
 import {
   eventsQuerySchema,
+  funnelCreateSchema,
   overviewQuerySchema,
   tenantDomainsSchema,
   tenantSetupSchema,
@@ -141,8 +144,29 @@ export function createServer({ config, pool }: ServerDependencies): express.Expr
     }
   });
 
-  app.get("/funnels", (_request, response) => {
-    response.status(200).json({ funnels: [] });
+  app.get("/funnels", async (request, response, next) => {
+    try {
+      const auth = requireAuth(request);
+      const tenant = await requireTenant(pool, auth.userId);
+      const funnels = await listFunnels(pool, tenant.id);
+
+      response.status(200).json({ funnels });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/funnels", async (request, response, next) => {
+    try {
+      const auth = requireAuth(request);
+      const body = funnelCreateSchema.parse(request.body);
+      const tenant = await requireTenant(pool, auth.userId);
+      const funnel = await createFunnel(pool, tenant.id, body.name, body.steps);
+
+      response.status(200).json({ funnel });
+    } catch (error) {
+      next(error);
+    }
   });
 
   app.use((error: unknown, _request: Request, response: Response, _next: NextFunction) => {

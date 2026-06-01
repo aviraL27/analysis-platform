@@ -1,10 +1,22 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
 :root {
-  color: #182230;
-  background: #f7f9fc;
+  color: #16202e;
+  background: #f6f8fb;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    "Manrope", "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  --bg: #f6f8fb;
+  --panel: #ffffff;
+  --panel-muted: #f5f8ff;
+  --border: #e1e7f1;
+  --text: #16202e;
+  --muted: #5f6b7a;
+  --accent: #245eea;
+  --accent-strong: #1741b6;
+  --accent-soft: #e0eaff;
+  --shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
 }
 
 * {
@@ -25,17 +37,19 @@ textarea {
 
 button {
   min-height: 36px;
-  border: 1px solid #d0d7e2;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #182230;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
   padding: 0 13px;
   cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
 button:hover {
-  border-color: #2563eb;
-  color: #174bc7;
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  transform: translateY(-1px);
 }
 
 button:disabled {
@@ -47,19 +61,20 @@ input,
 select,
 textarea {
   width: 100%;
-  border: 1px solid #d0d7e2;
-  border-radius: 7px;
-  background: #ffffff;
-  color: #182230;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--text);
   padding: 9px 11px;
   outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(36, 94, 234, 0.15);
 }
 
 textarea {
@@ -76,18 +91,18 @@ a {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #f7f9fc;
+  background: radial-gradient(circle at top, #eef3ff 0%, #f7f9fc 45%, #f4f7fb 100%);
 }
 
 .login-panel {
-  width: min(520px, 100%);
+  width: min(540px, 100%);
   display: grid;
   gap: 20px;
-  background: #ffffff;
-  border: 1px solid #dfe5ef;
-  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 18px 50px rgba(16, 24, 40, 0.08);
+  box-shadow: var(--shadow);
 }
 
 .login-panel h1,
@@ -104,16 +119,16 @@ a {
 }
 
 .muted {
-  color: #667085;
+  color: var(--muted);
   margin: 0;
 }
 
 .eyebrow {
   margin: 0 0 6px;
-  color: #2563eb;
+  color: var(--accent);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
@@ -122,23 +137,23 @@ a {
   gap: 8px;
   color: #475467;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 700;
 }
 
 .field input,
 .field textarea {
-  color: #182230;
-  font-weight: 400;
+  color: var(--text);
+  font-weight: 500;
 }
 
 .primary {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--accent);
+  border-color: var(--accent);
   color: #ffffff;
 }
 
 .primary:hover {
-  background: #1d4ed8;
+  background: var(--accent-strong);
   color: #ffffff;
 }
 
@@ -147,15 +162,15 @@ a {
   color: #b42318;
   background: #fff4f2;
   border: 1px solid #ffd5cf;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 10px 12px;
 }
 
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
-  background: #f7f9fc;
+  grid-template-columns: 248px minmax(0, 1fr);
+  background: radial-gradient(circle at top right, #eef3ff 0%, #f6f8fb 40%, #f2f5fb 100%);
 }
 
 .sidebar {
@@ -164,12 +179,12 @@ a {
   grid-template-rows: auto 1fr auto;
   gap: 28px;
   padding: 22px 18px;
-  background: #ffffff;
-  border-right: 1px solid #e4e9f2;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
 }
 
 .sidebar h1 {
-  color: #182230;
+  color: var(--text);
   font-size: 22px;
   line-height: 1.15;
 }
@@ -181,16 +196,16 @@ a {
 }
 
 .sidebar nav a {
-  border-radius: 7px;
+  border-radius: 9px;
   padding: 9px 10px;
   color: #475467;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .sidebar nav a:hover {
-  background: #f1f5ff;
-  color: #174bc7;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
 }
 
 .session-box {
@@ -219,9 +234,9 @@ a {
 }
 
 .topbar h2 {
-  color: #182230;
+  color: var(--text);
   font-size: 28px;
-  font-weight: 750;
+  font-weight: 800;
 }
 
 .controls {
@@ -239,10 +254,10 @@ a {
 
 .metric,
 .panel {
-  background: #ffffff;
-  border: 1px solid #e4e9f2;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
 }
 
 .metric {
@@ -253,7 +268,7 @@ a {
 }
 
 .metric span {
-  color: #667085;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 700;
 }
@@ -290,13 +305,13 @@ a {
 }
 
 .panel-heading h2 {
-  color: #182230;
+  color: var(--text);
   font-size: 16px;
-  font-weight: 750;
+  font-weight: 800;
 }
 
 .panel-heading span {
-  color: #667085;
+  color: var(--muted);
   font-size: 13px;
 }
 
@@ -336,7 +351,7 @@ a {
 
 .rank-row strong,
 .live-row strong {
-  color: #182230;
+  color: var(--text);
 }
 
 .live-row {
@@ -370,15 +385,56 @@ td {
 }
 
 th {
-  color: #667085;
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0;
+  letter-spacing: 0.08em;
 }
 
 td {
   color: #344054;
+}
+
+.funnels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.funnels-form {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel-muted);
+}
+
+.funnels-list {
+  display: grid;
+  gap: 10px;
+}
+
+.funnel-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+}
+
+.funnel-row strong {
+  display: block;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.funnel-row span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 @media (max-width: 980px) {
@@ -400,6 +456,10 @@ td {
   .controls,
   .metrics,
   .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .funnels {
     grid-template-columns: 1fr;
   }
 
