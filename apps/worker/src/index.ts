@@ -8,7 +8,7 @@ const config = getConfig();
 const pool = createDatabasePool({
   connectionString: config.databaseUrl
 });
-const realtime = createRealtimeClient(config.realtimeServerUrl);
+const realtime = createRealtimeClient(config.realtimeServerUrl, config.realtimeWorkerToken);
 const batcher = new EventBatcher({
   batchSize: config.batchSize,
   flushIntervalMs: config.batchFlushIntervalMs,

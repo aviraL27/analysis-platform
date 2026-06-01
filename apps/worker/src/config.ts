@@ -8,6 +8,7 @@ export interface WorkerConfig {
   batchFlushIntervalMs: number;
   workerConcurrency: number;
   realtimeServerUrl?: string;
+  realtimeWorkerToken?: string;
 }
 
 function readRequiredEnv(name: string): string {
@@ -48,6 +49,10 @@ export function getConfig(): WorkerConfig {
 
   if (process.env.DASHBOARD_REALTIME_URL) {
     config.realtimeServerUrl = process.env.DASHBOARD_REALTIME_URL;
+  }
+
+  if (process.env.DASHBOARD_WORKER_TOKEN) {
+    config.realtimeWorkerToken = process.env.DASHBOARD_WORKER_TOKEN;
   }
 
   return config;

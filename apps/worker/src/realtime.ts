@@ -9,10 +9,13 @@ export interface RealtimeClient {
 class SocketRealtimeClient implements RealtimeClient {
   readonly #socket: Socket;
 
-  constructor(serverUrl: string) {
+  constructor(serverUrl: string, workerToken: string) {
     this.#socket = io(serverUrl, {
       transports: ["websocket"],
-      reconnection: true
+      reconnection: true,
+      auth: {
+        workerToken
+      }
     });
   }
 
@@ -51,10 +54,10 @@ class NoopRealtimeClient implements RealtimeClient {
   }
 }
 
-export function createRealtimeClient(serverUrl: string | undefined): RealtimeClient {
-  if (!serverUrl) {
+export function createRealtimeClient(serverUrl: string | undefined, workerToken: string | undefined): RealtimeClient {
+  if (!serverUrl || !workerToken) {
     return new NoopRealtimeClient();
   }
 
-  return new SocketRealtimeClient(serverUrl);
+  return new SocketRealtimeClient(serverUrl, workerToken);
 }

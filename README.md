@@ -1,6 +1,6 @@
 # Analytiq
 
-Analytiq is a self-hostable analytics platform: a small browser SDK sends events to an ingestion API, Redis/BullMQ buffers the write path, workers enrich and persist events into TimescaleDB, and a dashboard API/frontend will expose realtime and historical analytics per tenant.
+Analytiq is a self-hostable analytics platform: a small browser SDK sends events to an ingestion API, Redis/BullMQ buffers the write path, workers enrich and persist events into TimescaleDB, and a dashboard API/frontend expose realtime and historical analytics per tenant.
 
 ## Architecture
 
@@ -68,6 +68,7 @@ erDiagram
     uuid id PK
     text name
     uuid token UK
+    uuid owner_user_id UK
     text_array domain_whitelist
     text plan
     timestamptz created_at
@@ -149,6 +150,16 @@ WORKER_BATCH_SIZE=50
 WORKER_BATCH_FLUSH_INTERVAL_MS=1000
 WORKER_CONCURRENCY=10
 DASHBOARD_REALTIME_URL=http://localhost:3002
+DASHBOARD_WORKER_TOKEN=replace-with-a-long-random-secret
+
+DASHBOARD_API_PORT=3002
+SUPABASE_URL=
+SUPABASE_JWT_SECRET=
+FRONTEND_ORIGIN=http://localhost:5173
+
+VITE_DASHBOARD_API_URL=http://localhost:3002
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 ```
 
 ## Install
@@ -165,7 +176,7 @@ Run migrations after PostgreSQL/TimescaleDB is available:
 npm run migrate --workspace @analytiq/db
 ```
 
-The first migration enables `timescaledb` and `pgcrypto`, creates the schema, converts `events` to a hypertable, creates indexes, and enables RLS policies.
+The migrations enable `timescaledb` and `pgcrypto`, create the schema, convert `events` to a hypertable, create indexes, enable RLS policies, and add a Supabase user-to-tenant owner mapping.
 
 ## Development
 
@@ -179,7 +190,9 @@ Run a single workspace:
 
 ```bash
 npm run dev --workspace @analytiq/ingestion-api
+npm run dev --workspace @analytiq/dashboard-api
 npm run dev --workspace @analytiq/worker
+npm run dev --workspace @analytiq/frontend
 ```
 
 Build and typecheck:
@@ -223,6 +236,41 @@ Example payload:
 
 The ingestion API validates payloads, checks tenant token/domain/rate limit, enqueues the event, and returns quickly. It never writes events directly to the database.
 
+## Browser SDK
+
+The SDK builds to `apps/sdk/dist/index.global.js` and exposes `window.analytiq`:
+
+```html
+<script src="/path/to/index.global.js"></script>
+<script>
+  analytiq.init({
+    token: "00000000-0000-0000-0000-000000000000",
+    endpoint: "http://localhost:3001/ingest"
+  });
+</script>
+```
+
+`init` sends an automatic `pageview` by default and enables automatic click tracking. Custom events can be sent with `analytiq.track("signup", { properties: { plan: "pro" } })`.
+
+## Dashboard
+
+The dashboard API verifies Supabase JWTs, maps the authenticated user to a tenant, and serves tenant-scoped stats. The React dashboard supports Supabase Auth when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set, and also includes a manual JWT field for local development.
+
+Socket.io dashboard clients authenticate with their Supabase JWT. Worker realtime events authenticate separately with `DASHBOARD_WORKER_TOKEN`; without that token the worker falls back to no-op realtime emission.
+
+Key API routes:
+
+```http
+GET /tenant
+POST /tenants/setup
+PUT /tenants/domains
+GET /stats/overview?range=24h|7d|30d
+GET /stats/timeseries?range=7d&event=pageview
+GET /stats/realtime
+GET /events?limit=50&offset=0
+GET /funnels
+```
+
 ## Security Model
 
 - Zod validation on ingestion and worker queue payloads
@@ -234,6 +282,9 @@ The ingestion API validates payloads, checks tenant token/domain/rate limit, enq
 - RLS enabled on project tables
 - IP anonymization before event storage
 - Supabase JWT verification middleware
+- Supabase JWT audience validation for dashboard clients
 - Tenant ID derived from authenticated user context
 - Tenant-scoped queries on every route
-- Socket.io tenant rooms
+- Socket.io tenant rooms with authenticated dashboard clients
+- Worker Socket.io events protected by `DASHBOARD_WORKER_TOKEN`
+- Dependency-free browser SDK with pageview, click, and custom event capture

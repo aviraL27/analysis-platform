@@ -1,0 +1,429 @@
+:root {
+  color: #182230;
+  background: #f7f9fc;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  min-height: 36px;
+  border: 1px solid #d0d7e2;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #182230;
+  padding: 0 13px;
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #2563eb;
+  color: #174bc7;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid #d0d7e2;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #182230;
+  padding: 9px 11px;
+  outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+textarea {
+  resize: vertical;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #f7f9fc;
+}
+
+.login-panel {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 20px;
+  background: #ffffff;
+  border: 1px solid #dfe5ef;
+  border-radius: 8px;
+  padding: 28px;
+  box-shadow: 0 18px 50px rgba(16, 24, 40, 0.08);
+}
+
+.login-panel h1,
+.sidebar h1,
+.topbar h2,
+.panel h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+.login-panel h1 {
+  font-size: 32px;
+  line-height: 1.08;
+}
+
+.muted {
+  color: #667085;
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: #475467;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.field input,
+.field textarea {
+  color: #182230;
+  font-weight: 400;
+}
+
+.primary {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.primary:hover {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: #b42318;
+  background: #fff4f2;
+  border: 1px solid #ffd5cf;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 236px minmax(0, 1fr);
+  background: #f7f9fc;
+}
+
+.sidebar {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 28px;
+  padding: 22px 18px;
+  background: #ffffff;
+  border-right: 1px solid #e4e9f2;
+}
+
+.sidebar h1 {
+  color: #182230;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.sidebar nav {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.sidebar nav a {
+  border-radius: 7px;
+  padding: 9px 10px;
+  color: #475467;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sidebar nav a:hover {
+  background: #f1f5ff;
+  color: #174bc7;
+}
+
+.session-box {
+  display: grid;
+  gap: 10px;
+  color: #667085;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.session-box button {
+  justify-self: start;
+}
+
+.dashboard {
+  min-width: 0;
+  padding: 24px;
+}
+
+.topbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.topbar h2 {
+  color: #182230;
+  font-size: 28px;
+  font-weight: 750;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: 128px 158px 92px;
+  gap: 9px;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.metric,
+.panel {
+  background: #ffffff;
+  border: 1px solid #e4e9f2;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.metric {
+  min-height: 112px;
+  display: grid;
+  align-items: center;
+  padding: 18px;
+}
+
+.metric span {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.metric strong {
+  display: block;
+  margin-top: 10px;
+  color: #101828;
+  font-size: 30px;
+  line-height: 1;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.panel {
+  min-width: 0;
+  padding: 18px;
+}
+
+.wide {
+  grid-column: span 2;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panel-heading h2 {
+  color: #182230;
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.panel-heading span {
+  color: #667085;
+  font-size: 13px;
+}
+
+.chart {
+  width: 100%;
+  height: 310px;
+}
+
+.ranking,
+.live-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rank-row,
+.live-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  min-height: 36px;
+  border-bottom: 1px solid #edf1f7;
+}
+
+.rank-row:last-child,
+.live-row:last-child {
+  border-bottom: 0;
+}
+
+.rank-row span,
+.live-row span {
+  overflow: hidden;
+  color: #475467;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rank-row strong,
+.live-row strong {
+  color: #182230;
+}
+
+.live-row {
+  grid-template-columns: 96px minmax(0, 1fr);
+}
+
+.settings-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+th,
+td {
+  overflow: hidden;
+  border-bottom: 1px solid #edf1f7;
+  padding: 11px 8px;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+th {
+  color: #667085;
+  font-size: 12px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+td {
+  color: #344054;
+}
+
+@media (max-width: 980px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    min-height: auto;
+    border-right: 0;
+    border-bottom: 1px solid #e4e9f2;
+  }
+
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .controls,
+  .metrics,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .dashboard,
+  .sidebar {
+    padding: 16px;
+  }
+
+  .login-panel {
+    padding: 20px;
+  }
+
+  .login-panel h1,
+  .topbar h2 {
+    font-size: 25px;
+  }
+
+  .metric strong {
+    font-size: 26px;
+  }
+}
