@@ -1,5 +1,10 @@
+import path from "node:path";
+import dotenv from "dotenv";
+
 import { createDatabasePool } from "./client.js";
 import { runMigrations } from "./migrations.js";
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
 
 const pool = createDatabasePool();
 

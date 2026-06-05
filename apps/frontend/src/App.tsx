@@ -122,7 +122,13 @@ function LoginPanel({
           <p className="muted">Sign in with Supabase or paste a local JWT to open the dashboard.</p>
         </div>
 
-        {client ? <Auth supabaseClient={client} appearance={{ theme: ThemeSupa }} /> : null}
+        {client ? (
+          <Auth
+            supabaseClient={client}
+            appearance={{ theme: ThemeSupa }}
+            providers={["google", "github"]}
+          />
+        ) : null}
 
         <label className="field">
           <span>JWT access token</span>
