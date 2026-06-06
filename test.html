@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Analytiq SDK Telemetry Test Bench</title>
+  <style>
+    body {
+      background-color: #f0f4f8;
+      color: #0f172a;
+      font-family: "Courier New", Courier, monospace;
+      padding: 32px;
+      margin: 0;
+    }
+    .container {
+      max-width: 650px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 4px;
+      padding: 24px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+    h1 {
+      font-size: 18px;
+      margin-top: 0;
+      border-bottom: 1px dashed rgba(15, 23, 42, 0.15);
+      padding-bottom: 12px;
+      color: #16a34a;
+    }
+    .field {
+      margin-bottom: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    input, select, button {
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 12px;
+      border: 1px solid rgba(15, 23, 42, 0.15);
+      border-radius: 3px;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: #2563eb;
+    }
+    button {
+      background: #11131a;
+      color: #ffffff;
+      cursor: pointer;
+      font-weight: bold;
+      border: 0;
+      transition: background 0.15s;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .panel {
+      background: #f8fafc;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 12px 16px;
+      border-radius: 3px;
+      font-size: 12px;
+      margin-top: 16px;
+    }
+    .log-container {
+      background: #11131a;
+      color: #e5e7eb;
+      padding: 12px;
+      border-radius: 3px;
+      height: 120px;
+      overflow-y: auto;
+      font-size: 11px;
+      margin-top: 12px;
+    }
+    .log-line {
+      margin-bottom: 4px;
+    }
+    .log-time { color: #7c8597; }
+    .log-success { color: #22c55e; }
+  </style>
+  <!-- Load the SDK directly from the served local directory -->
+  <script src="/apps/sdk/dist/index.global.js"></script>
+</head>
+<body>
+
+<div class="container">
+  <h1>ANALYTIQ // TELEMETRY_TEST_BENCH v0.1.0</h1>
+  
+  <div class="field">
+    <label>1. SELECT CLIENT TOKEN</label>
+    <select id="token-select" onchange="initializeSDK()">
+      <option value="31880d74-03b3-4183-b2e0-1b31e2db35f1">testing (31880d74...)</option>
+      <option value="47d9b1a6-e97b-4462-b27c-f93ffffe35d9">helloworld (47d9b1a6...)</option>
+      <option value="49c66f03-4c36-497c-aee7-615f5f7a48bf">hello-world (49c66f03...)</option>
+      <option value="51100e24-d3c2-49b1-be92-925493587d37">Local Workspace (51100e24...)</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>OR PASTE CUSTOM CLIENT TOKEN</label>
+    <input type="text" id="custom-token" placeholder="Paste custom client token here" oninput="initializeSDK()" />
+  </div>
+
+  <div class="panel">
+    <strong>STATUS:</strong> <span id="sdk-status" style="color: #dc2626;">UNINITIALIZED</span>
+  </div>
+
+  <h2 style="font-size: 14px; margin-top: 24px;">2. DISPATCH EVENTS</h2>
+  
+  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+    <button onclick="sendPageview()">PAGEVIEW</button>
+    <button onclick="sendClick()">CLICK</button>
+    <button onclick="sendSignup()">SIGNUP (CUSTOM)</button>
+  </div>
+
+  <div class="log-container" id="log-console">
+    <div class="log-line"><span class="log-time">[SYSTEM]</span> Ready to dispatch telemetry metrics...</div>
+  </div>
+</div>
+
+<script>
+  const logConsole = document.getElementById("log-console");
+
+  function log(msg, isSuccess = false) {
+    const time = new Date().toLocaleTimeString();
+    const line = document.createElement("div");
+    line.className = "log-line";
+    line.innerHTML = `<span class="log-time">[${time}]</span> ${isSuccess ? `<span class="log-success">${msg}</span>` : msg}`;
+    logConsole.appendChild(line);
+    logConsole.scrollTop = logConsole.scrollHeight;
+  }
+
+  function getActiveToken() {
+    const custom = document.getElementById("custom-token").value.trim();
+    if (custom) return custom;
+    return document.getElementById("token-select").value;
+  }
+
+  function initializeSDK() {
+    const token = getActiveToken();
+    if (!token) {
+      document.getElementById("sdk-status").innerText = "UNINITIALIZED";
+      document.getElementById("sdk-status").style.color = "#dc2626";
+      return;
+    }
+
+    try {
+      if (window.analytiq) {
+        window.analytiq.init({
+          token: token,
+          endpoint: "http://localhost:3001/ingest",
+          autoClicks: false,
+          autoPageviews: false
+        });
+        document.getElementById("sdk-status").innerText = `INITIALIZED (TOKEN: ${token.slice(0, 8)}...)`;
+        document.getElementById("sdk-status").style.color = "#16a34a";
+        log(`SDK initialized for token: ${token}`);
+      } else {
+        log("ERROR: window.analytiq not found. Is ingestion-api server running?");
+      }
+    } catch (e) {
+      log(`Initialization error: ${e.message}`);
+    }
+  }
+
+  function sendPageview() {
+    if (!window.analytiq) return log("SDK not loaded.");
+    try {
+      window.analytiq.page();
+      log("Dispatched: pageview event.", true);
+    } catch(e) {
+      log(`Error: ${e.message}`);
+    }
+  }
+
+  function sendClick() {
+    if (!window.analytiq) return log("SDK not loaded.");
+    try {
+      window.analytiq.track("click", {
+        properties: { tag: "button", text: "Click Test Button" }
+      });
+      log("Dispatched: click event.", true);
+    } catch(e) {
+      log(`Error: ${e.message}`);
+    }
+  }
+
+  function sendSignup() {
+    if (!window.analytiq) return log("SDK not loaded.");
+    try {
+      window.analytiq.track("signup", {
+        properties: { plan: "pro", source: "test-bench" }
+      });
+      log("Dispatched: signup event (custom properties).", true);
+    } catch(e) {
+      log(`Error: ${e.message}`);
+    }
+  }
+
+  // Initialize on load
+  window.addEventListener("load", () => {
+    initializeSDK();
+  });
+</script>
+</body>
+</html>

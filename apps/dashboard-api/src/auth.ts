@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { jwtVerify } from "jose";
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify } from "jose";
 import { z } from "zod";
 import type { DashboardConfig } from "./config.js";
 
@@ -47,12 +47,33 @@ export function createAuthMiddleware(config: DashboardConfig) {
   };
 }
 
+const remoteJwksByUrl = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
+
+function getRemoteJwks(supabaseUrl: string): ReturnType<typeof createRemoteJWKSet> {
+  const existing = remoteJwksByUrl.get(supabaseUrl);
+
+  if (existing) {
+    return existing;
+  }
+
+  const jwks = createRemoteJWKSet(new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`));
+  remoteJwksByUrl.set(supabaseUrl, jwks);
+  return jwks;
+}
+
 export async function verifySupabaseJwt(token: string, config: DashboardConfig): Promise<AuthContext> {
-  const secret = new TextEncoder().encode(config.supabaseJwtSecret);
   const verifyOptions = config.supabaseUrl
-    ? { issuer: `${config.supabaseUrl}/auth/v1`, audience: "authenticated" }
-    : { audience: "authenticated" };
-  const result = await jwtVerify(token, secret, verifyOptions);
+    ? { issuer: `${config.supabaseUrl}/auth/v1`, audience: "authenticated" as const }
+    : { audience: "authenticated" as const };
+
+  const header = decodeProtectedHeader(token);
+  const result =
+    header.alg === "HS256"
+      ? await jwtVerify(token, new TextEncoder().encode(config.supabaseJwtSecret), verifyOptions)
+      : config.supabaseUrl
+        ? await jwtVerify(token, getRemoteJwks(config.supabaseUrl), verifyOptions)
+        : await Promise.reject(new Error("Asymmetric JWT verification requires SUPABASE_URL"));
+
   const claims = claimsSchema.parse(result.payload);
   const auth: AuthContext = { userId: claims.sub };
 

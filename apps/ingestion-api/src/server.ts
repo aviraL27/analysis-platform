@@ -10,6 +10,11 @@ import { isDomainAllowed } from "./domain.js";
 import { checkRateLimit } from "./rate-limit.js";
 import { ingestSchema } from "./schemas.js";
 import { getTenantByToken } from "./tenants.js";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface ServerDependencies {
   config: IngestionConfig;
@@ -38,6 +43,12 @@ export function createServer({ config, redis, pool, queue }: ServerDependencies)
 
   app.get("/health", (_request, response) => {
     response.status(200).json({ status: "ok" });
+  });
+
+  app.get("/sdk", cors({ origin: "*" }), (_request, response) => {
+    const sdkPath = path.resolve(__dirname, "../../../sdk/dist/index.global.js");
+    response.setHeader("Content-Type", "application/javascript");
+    response.sendFile(sdkPath);
   });
 
   app.options("/ingest", cors({ origin: "*" }));
