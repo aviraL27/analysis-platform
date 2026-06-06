@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
@@ -34,27 +34,6 @@ interface LiveEvent {
   url?: string;
   sessionId: string;
 }
-
-interface SyslogEntry {
-  ts: string;
-  level: "INFO" | "WARN" | "ERR" | "DEBUG" | "OK";
-  msg: string;
-}
-
-const LOG_TEMPLATES = [
-  { level: "INFO" as const, msg: "Request processed: GET /stats/overview (200 OK)" },
-  { level: "INFO" as const, msg: "Redis cache hit for tenant token." },
-  { level: "DEBUG" as const, msg: "Worker thread flushed batch to database." },
-  { level: "WARN" as const, msg: "Slow query detected: SELECT count(*) FROM events (124ms)" },
-  { level: "INFO" as const, msg: "Socket.io client connected to room: tenant-room-main" },
-  { level: "INFO" as const, msg: "User agent parsed: Chrome/Safari on desktop." },
-  { level: "OK" as const, msg: "Worker realtime emission successful." },
-  { level: "INFO" as const, msg: "Hourly stats aggregation complete for bucket." },
-  { level: "DEBUG" as const, msg: "Garbage collection execution: freed 1.8MB." },
-  { level: "WARN" as const, msg: "Redis token cache TTL expired, refreshing connection." },
-  { level: "ERR" as const, msg: "Connection pool warning: temporary queue build-up." },
-  { level: "OK" as const, msg: "Database health check verification successful." }
-];
 
 const emptyOverview: OverviewStats = {
   totalEvents: 0,
@@ -116,11 +95,14 @@ function useAccessToken(client: SupabaseClient | undefined) {
   }, []);
 
   const signOut = useCallback(async () => {
-    setSession(null);
-    setManualToken("");
-    window.sessionStorage.removeItem("analytiq.jwt");
-    window.localStorage.removeItem("analytiq.jwt");
-    await client?.auth.signOut();
+    try {
+      await client?.auth.signOut({ scope: "local" });
+    } finally {
+      setSession(null);
+      setManualToken("");
+      window.sessionStorage.removeItem("analytiq.jwt");
+      window.localStorage.removeItem("analytiq.jwt");
+    }
   }, [client]);
 
   const accessToken = session?.access_token ?? (authReady ? manualToken.trim() : "");
@@ -467,6 +449,40 @@ function Ranking({ title, rows }: { title: string; rows: { value: string; count:
   );
 }
 
+function RealMetricCard({
+  label,
+  value,
+  detail,
+  points
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  points: number[];
+}) {
+  return (
+    <section className="terminal-card">
+      <div className="terminal-card-header">
+        <span className="terminal-card-title">{label}</span>
+        <div className="terminal-card-controls">
+          <span className="terminal-card-dot active" />
+        </div>
+      </div>
+      <div className="terminal-card-body">
+        <div className="metric-module">
+          <div className="metric-value-row">
+            <div className="metric-value">{value}</div>
+            <div className="metric-delta">{detail}</div>
+          </div>
+          <div className="sparkline-container">
+            <Sparkline color="#16a34a" points={points} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function FunnelsPanel({
   token,
   funnels,
@@ -660,14 +676,15 @@ export function App() {
   const { session, accessToken, authReady, manualToken, saveManualToken, signOut } = useAccessToken(supabase);
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [range, setRange] = useState<RangeKey>("7d");
-  const [eventName, setEventName] = useState("pageview");
-  const [debouncedEventName, setDebouncedEventName] = useState("pageview");
+  const [eventName, setEventName] = useState("");
+  const [debouncedEventName, setDebouncedEventName] = useState("");
   const [overview, setOverview] = useState<OverviewStats>(emptyOverview);
   const [timeseries, setTimeseries] = useState<TimeseriesPoint[]>([]);
   const [realtime, setRealtime] = useState<RealtimeStats>(emptyRealtime);
   const [events, setEvents] = useState<EventLogRow[]>([]);
   const [funnels, setFunnels] = useState<Funnel[]>([]);
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([]);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [activeMenuTab, setActiveMenuTab] = useState("Metrics");
@@ -682,34 +699,6 @@ export function App() {
     window.localStorage.setItem("analytiq.theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  // Simulated live stats state
-  const [cpu, setCpu] = useState(62);
-  const [memory, setMemory] = useState(79);
-  const [queueSize, setQueueSize] = useState(128);
-  const [dbRead, setDbRead] = useState(8.42);
-  const [dbWrite, setDbWrite] = useState(1.12);
-  const [activeConns, setActiveConns] = useState(8842);
-  const [syslogs, setSyslogs] = useState<SyslogEntry[]>([
-    { ts: "14:32:01.082", level: "INFO", msg: "Region_US_EAST node sync complete." },
-    { ts: "14:32:04.115", level: "WARN", msg: "High memory pressure detected on worker-04." },
-    { ts: "14:32:05.991", level: "OK", msg: "Connection pool expanded to 10k limits." },
-    { ts: "14:32:10.200", level: "INFO", msg: "Auth_Service rotated secrets successfully." },
-    { ts: "14:32:12.042", level: "ERR", msg: "Timeout waiting for downstream response from Cluster_02." },
-    { ts: "14:32:15.551", level: "INFO", msg: "Garbage collection sweep finished in 42ms." }
-  ]);
-
-  const syslogConsoleRef = useRef<HTMLDivElement | null>(null);
-
-  // Sparkline values (simulated static history)
-  const sparklineData = useMemo(() => {
-    return {
-      requests: [12, 14, 15, 11, 16, 18, 14, 15, 19, 17, 21, 23, 20],
-      errors: [0.02, 0.01, 0.01, 0.03, 0.01, 0.02, 0.01, 0.01, 0.01, 0.01, 0.01],
-      latency: [8.5, 8.2, 8.9, 8.4, 8.1, 8.6, 9.2, 8.3, 8.5, 8.4, 8.2, 8.5],
-      sessions: [110, 112, 115, 108, 119, 122, 120, 125, 122, 128, 131, 130]
-    };
-  }, []);
-
   const chartData = useMemo(
     () =>
       timeseries.map((point) => ({
@@ -719,84 +708,10 @@ export function App() {
     [timeseries]
   );
 
-  // Requests per second calculations
-  const calculatedReqsSec = useMemo(() => {
-    const totalLast30 = realtime.eventsLast30Minutes || 0;
-    if (totalLast30 > 0) {
-      return (totalLast30 / 1800).toFixed(2);
-    }
-    return (1.24 + Math.random() * 0.15).toFixed(2);
-  }, [realtime.eventsLast30Minutes]);
-
-  // Uptime display
-  const calculatedThroughput = useMemo(() => {
-    const eventsCount = realtime.eventsLast30Minutes || 0;
-    const mbValue = (eventsCount * 260) / (1024 * 1024); // 260 bytes per average payload
-    return `${mbValue.toFixed(3)} MB/30m`;
-  }, [realtime.eventsLast30Minutes]);
-
-  // Handle syslog scroll
-  useEffect(() => {
-    if (syslogConsoleRef.current) {
-      syslogConsoleRef.current.scrollTop = syslogConsoleRef.current.scrollHeight;
-    }
-  }, [syslogs]);
-
-  // Jitter simulated metrics to give operational "live" feel
-  useEffect(() => {
-    const metricsInterval = setInterval(() => {
-      setCpu((curr) => {
-        const diff = Math.floor(Math.random() * 7) - 3;
-        const next = curr + diff;
-        return Math.max(45, Math.min(95, next));
-      });
-      setMemory((curr) => {
-        const diff = Math.floor(Math.random() * 3) - 1;
-        const next = curr + diff;
-        return Math.max(75, Math.min(85, next));
-      });
-      setQueueSize((curr) => {
-        const diff = Math.floor(Math.random() * 11) - 5;
-        const next = curr + diff;
-        return Math.max(20, Math.min(1000, next));
-      });
-      setDbRead((curr) => {
-        const diff = (Math.random() * 0.4) - 0.2;
-        const next = Number((curr + diff).toFixed(2));
-        return Math.max(5.0, Math.min(15.0, next));
-      });
-      setDbWrite((curr) => {
-        const diff = (Math.random() * 0.1) - 0.05;
-        const next = Number((curr + diff).toFixed(2));
-        return Math.max(0.5, Math.min(2.5, next));
-      });
-      setActiveConns((curr) => {
-        const diff = Math.floor(Math.random() * 5) - 2;
-        return curr + diff;
-      });
-    }, 3500);
-
-    // Syslog stream updater
-    const syslogInterval = setInterval(() => {
-      const template = LOG_TEMPLATES[Math.floor(Math.random() * LOG_TEMPLATES.length)];
-      if (!template) {
-        return;
-      }
-      const date = new Date();
-      const timeStr = `${String(date.getHours()).padStart(2, "0")}:${String(
-        date.getMinutes()
-      ).padStart(2, "0")}:${String(date.getSeconds()).padStart(2, "0")}.${String(
-        date.getMilliseconds()
-      ).padStart(3, "0")}`;
-
-      setSyslogs((curr) => [...curr, { ts: timeStr, level: template.level, msg: template.msg }].slice(-15));
-    }, 4500);
-
-    return () => {
-      clearInterval(metricsInterval);
-      clearInterval(syslogInterval);
-    };
-  }, []);
+  const sparklinePoints = useMemo(
+    () => (timeseries.length > 0 ? timeseries.map((point) => point.count) : [0]),
+    [timeseries]
+  );
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedEventName(eventName), 300);
@@ -825,6 +740,14 @@ export function App() {
       setTimeseries(nextTimeseries.points);
       setRealtime(nextRealtime);
       setEvents(nextEvents.events);
+      setLiveEvents(
+        nextEvents.events.slice(0, 10).map((event) => ({
+          time: event.time,
+          eventName: event.eventName,
+          sessionId: event.sessionId,
+          ...(event.url ? { url: event.url } : {})
+        }))
+      );
       setFunnels(nextFunnels.funnels);
     } catch (refreshError) {
       setError(refreshError instanceof Error ? refreshError.message : "Could not load dashboard");
@@ -853,12 +776,16 @@ export function App() {
       }
     });
 
+    socket.on("connect", () => setSocketConnected(true));
+    socket.on("disconnect", () => setSocketConnected(false));
+    socket.on("connect_error", () => setSocketConnected(false));
     socket.on("event", (event: LiveEvent) => {
       setLiveEvents((current) => [event, ...current].slice(0, 10));
       void refresh();
     });
 
     return () => {
+      setSocketConnected(false);
       socket.close();
     };
   }, [accessToken, refresh, tenant]);
@@ -880,15 +807,19 @@ export function App() {
   }
 
   async function handleSignOut() {
-    await signOut();
-    setTenant(null);
-    setOverview(emptyOverview);
-    setTimeseries([]);
-    setRealtime(emptyRealtime);
-    setEvents([]);
-    setFunnels([]);
-    setLiveEvents([]);
-    setError(null);
+    try {
+      await signOut();
+    } finally {
+      setTenant(null);
+      setOverview(emptyOverview);
+      setTimeseries([]);
+      setRealtime(emptyRealtime);
+      setEvents([]);
+      setFunnels([]);
+      setLiveEvents([]);
+      setSocketConnected(false);
+      setError(null);
+    }
   }
 
   if (!tenant && !loading && error === "Tenant has not been set up") {
@@ -975,9 +906,9 @@ export function App() {
               <DeploymentsIcon /> Deployments
             </a>
             <a
-              href="#syslog-panel"
+              href="#events"
               className={activeMenuTab === "Alerts" ? "active" : ""}
-              onClick={(e) => { e.preventDefault(); setActiveMenuTab("Alerts"); document.getElementById("syslog-panel")?.scrollIntoView({ behavior: "smooth" }); }}
+              onClick={(e) => { e.preventDefault(); setActiveMenuTab("Alerts"); document.getElementById("events")?.scrollIntoView({ behavior: "smooth" }); }}
             >
               <AlertsIcon /> Alerts
             </a>
@@ -1001,10 +932,10 @@ export function App() {
           </button>
           <div className="sidebar-status">
             <span className="pulse-indicator" />
-            <span>Status: 200 OK</span>
+            <span>{error ? "API error" : "API connected"}</span>
           </div>
           <div className="session-box">
-            <span style={{ fontSize: "9px" }}>UPTIME: 99.98% | REGION: US_EAST</span>
+            <span style={{ fontSize: "9px" }}>{tenant?.name ?? "Tenant loading..."}</span>
             <span title={session?.user.email ?? "Manual JWT"}>
               {session?.user.email ?? "Manual JWT"}
             </span>
@@ -1030,10 +961,9 @@ export function App() {
           <header className="topbar">
             <div className="topbar-info">
               <h2>Metrics / Ingestion</h2>
-              <span className="badge success">STATUS: ONLINE</span>
-              <span className="badge">Cluster_01</span>
-              <span className="badge">Region_US_EAST</span>
-              <span className="badge">Auth_Service</span>
+              <span className="badge success">{socketConnected ? "REALTIME: CONNECTED" : "REALTIME: DISCONNECTED"}</span>
+              <span className="badge">{tenant?.name ?? "Tenant"}</span>
+              <span className="badge">{range}</span>
             </div>
             <div className="controls">
               <select value={range} onChange={(event) => setRange(event.target.value as RangeKey)}>
@@ -1056,33 +986,29 @@ export function App() {
 
           {/* Metric Panels */}
           <div className="metrics-row" id="overview">
-            <MetricCard
-              label="API Requests"
+            <RealMetricCard
+              label="Total Events"
               value={formatCount(overview.totalEvents)}
-              delta={{ val: "12.4%", isUp: true }}
-              points={sparklineData.requests}
-              status="ok"
+              detail={range}
+              points={sparklinePoints}
             />
-            <MetricCard
-              label="Error Rate"
-              value="0.01%"
-              delta={{ val: "0.2%", isUp: false }}
-              points={sparklineData.errors}
-              status="ok"
+            <RealMetricCard
+              label="Events Last 30m"
+              value={formatCount(realtime.eventsLast30Minutes)}
+              detail="30m"
+              points={sparklinePoints}
             />
-            <MetricCard
-              label="Avg Response Time"
-              value={`${(dbRead + dbWrite).toFixed(2)}ms`}
-              delta={{ val: "1.4%", isUp: false }}
-              points={sparklineData.latency}
-              status="ok"
+            <RealMetricCard
+              label="Active Users"
+              value={formatCount(realtime.activeUsers)}
+              detail="5m"
+              points={sparklinePoints}
             />
-            <MetricCard
-              label="Active Sessions"
+            <RealMetricCard
+              label="Unique Sessions"
               value={formatCount(overview.uniqueSessions)}
-              delta={{ val: "4.8%", isUp: true }}
-              points={sparklineData.sessions}
-              status="ok"
+              detail={range}
+              points={sparklinePoints}
             />
           </div>
 
@@ -1100,23 +1026,23 @@ export function App() {
               <div className="terminal-card-body">
                 <div className="chart-readouts">
                   <div className="readout-item">
-                    <span className="readout-label">requests/sec</span>
+                    <span className="readout-label">events in range</span>
                     <span className="readout-value mono" style={{ color: "var(--accent-primary)" }}>
-                      {calculatedReqsSec}/s
+                      {formatCount(overview.totalEvents)}
                     </span>
                   </div>
                   <div className="readout-item">
-                    <span className="readout-label">db latency</span>
-                    <span className="readout-value mono">{(dbRead + dbWrite).toFixed(2)}ms</span>
+                    <span className="readout-label">events last 30m</span>
+                    <span className="readout-value mono">{formatCount(realtime.eventsLast30Minutes)}</span>
                   </div>
                   <div className="readout-item">
-                    <span className="readout-label">throughput</span>
-                    <span className="readout-value mono">{calculatedThroughput}</span>
+                    <span className="readout-label">unique sessions</span>
+                    <span className="readout-value mono">{formatCount(overview.uniqueSessions)}</span>
                   </div>
                   <div className="readout-item">
-                    <span className="readout-label">active workers</span>
+                    <span className="readout-label">active users</span>
                     <span className="readout-value mono" style={{ color: "var(--accent-secondary)" }}>
-                      8 / 10
+                      {formatCount(realtime.activeUsers)}
                     </span>
                   </div>
                 </div>
@@ -1171,16 +1097,16 @@ export function App() {
             {/* Socket.io Realtime Stream */}
             <section className="terminal-card">
               <div className="terminal-card-header">
-                <span className="terminal-card-title">~/telemetry/live_worker_stream.log</span>
-                <span className="badge success" style={{ fontSize: "9px" }}>
-                  LIVE: {realtime.activeUsers} USERS
+                <span className="terminal-card-title">~/telemetry/recent_events.log</span>
+                <span className={`badge ${socketConnected ? "success" : ""}`} style={{ fontSize: "9px" }}>
+                  {socketConnected ? "LIVE UPDATES ON" : "LIVE UPDATES OFF"}
                 </span>
               </div>
               <div className="terminal-card-body" style={{ padding: 0 }}>
                 <div className="live-stream-list">
                   {liveEvents.length === 0 ? (
                     <p className="muted" style={{ padding: "16px" }}>
-                      Awaiting incoming SDK payloads...
+                      No events have been ingested for this tenant.
                     </p>
                   ) : null}
                   {liveEvents.map((event, idx) => (
@@ -1217,110 +1143,54 @@ export function App() {
             </div>
           </div>
 
-          {/* Live Syslog Panel at the bottom */}
-          <div className="syslog-panel terminal-card" id="syslog-panel">
-            <div className="syslog-header">
-              <span>tail -f /var/log/syslog</span>
-              <span style={{ opacity: 0.6 }}>SYS_OK</span>
-            </div>
-            <div className="syslog-console" ref={syslogConsoleRef}>
-              {syslogs.map((log, index) => (
-                <div key={index} className="syslog-line">
-                  <span className="syslog-ts">[{log.ts}]</span>
-                  <span className={`syslog-tag ${log.level.toLowerCase()}`}>{log.level}</span>
-                  <span>{log.msg}</span>
-                </div>
-              ))}
-              <div>
-                user@analytiq:~$&nbsp;
-                <span className="syslog-cursor" />
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* RIGHT SIDEBAR diagnostics */}
         <aside className="right-sidebar">
           <div className="infra-panel terminal-card">
             <div className="terminal-card-header">
-              <span className="terminal-card-title">db_health_check.log</span>
+              <span className="terminal-card-title">tenant_stats.log</span>
             </div>
             <div className="terminal-card-body">
               <div className="infra-metric">
-                <span className="infra-label">cluster_read</span>
-                <span className="infra-val mono" style={{ color: "var(--accent-primary)" }}>
-                  {dbRead.toFixed(2)}ms
-                </span>
+                <span className="infra-label">tenant</span>
+                <span className="infra-val mono">{tenant?.name ?? "-"}</span>
               </div>
               <div className="infra-metric">
-                <span className="infra-label">cluster_write</span>
-                <span className="infra-val mono" style={{ color: "var(--accent-primary)" }}>
-                  {dbWrite.toFixed(2)}ms
-                </span>
+                <span className="infra-label">plan</span>
+                <span className="infra-val mono">{tenant?.plan ?? "-"}</span>
               </div>
               <div className="infra-metric">
-                <span className="infra-label">active_connections</span>
-                <span className="infra-val mono">{activeConns.toLocaleString()}</span>
+                <span className="infra-label">events</span>
+                <span className="infra-val mono">{formatCount(overview.totalEvents)}</span>
               </div>
               <div className="infra-metric">
-                <span className="infra-label">error_rate</span>
-                <span className="infra-val mono" style={{ color: "var(--accent-primary)" }}>
-                  0.01%
-                </span>
+                <span className="infra-label">sessions</span>
+                <span className="infra-val mono">{formatCount(overview.uniqueSessions)}</span>
               </div>
             </div>
           </div>
 
           <div className="infra-panel terminal-card">
             <div className="terminal-card-header">
-              <span className="terminal-card-title">hardware_telemetry.log</span>
+              <span className="terminal-card-title">realtime_status.log</span>
             </div>
             <div className="terminal-card-body">
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "11px",
-                      fontFamily: "var(--font-mono)",
-                      marginBottom: "4px"
-                    }}
-                  >
-                    <span>CPU LOAD</span>
-                    <span>{cpu}%</span>
-                  </div>
-                  {renderActiveBar(cpu)}
-                </div>
-
-                <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      fontSize: "11px",
-                      fontFamily: "var(--font-mono)",
-                      marginBottom: "4px"
-                    }}
-                  >
-                    <span>MEM UTILIZATION</span>
-                    <span>{memory}%</span>
-                  </div>
-                  {renderActiveBar(memory)}
-                </div>
-
-                <div className="infra-metric" style={{ borderBottom: 0, paddingBottom: 0, marginTop: "4px" }}>
-                  <span className="infra-label">queue_size</span>
-                  <span className="infra-val mono" style={{ color: cpu > 85 ? "var(--warning)" : "var(--text-primary)" }}>
-                    {queueSize} jobs
-                  </span>
-                </div>
-                <div className="infra-metric" style={{ borderBottom: 0, paddingBottom: 0, paddingTop: 0 }}>
-                  <span className="infra-label">worker_health</span>
-                  <span className="infra-val mono" style={{ color: "var(--accent-primary)" }}>
-                    ACTIVE (10/10)
-                  </span>
-                </div>
+              <div className="infra-metric">
+                <span className="infra-label">socket</span>
+                <span className="infra-val mono">{socketConnected ? "connected" : "disconnected"}</span>
+              </div>
+              <div className="infra-metric">
+                <span className="infra-label">active_users_5m</span>
+                <span className="infra-val mono">{formatCount(realtime.activeUsers)}</span>
+              </div>
+              <div className="infra-metric">
+                <span className="infra-label">events_30m</span>
+                <span className="infra-val mono">{formatCount(realtime.eventsLast30Minutes)}</span>
+              </div>
+              <div className="infra-metric">
+                <span className="infra-label">recent_rows</span>
+                <span className="infra-val mono">{formatCount(events.length)}</span>
               </div>
             </div>
           </div>

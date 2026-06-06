@@ -4,12 +4,20 @@ export interface AnalytiqConfig {
   autoPageviews?: boolean;
   autoClicks?: boolean;
   sessionStorageKey?: string;
+  onDelivery?: (result: DeliveryResult) => void;
 }
 
 export interface TrackOptions {
   properties?: Record<string, unknown>;
   url?: string;
   referrer?: string;
+}
+
+export interface DeliveryResult {
+  eventName: string;
+  ok: boolean;
+  status?: number;
+  error?: string;
 }
 
 interface IngestPayload {
@@ -26,6 +34,7 @@ interface IngestPayload {
 const defaultEndpoint = "http://localhost:3001/ingest";
 const defaultSessionStorageKey = "analytiq.session_id";
 let activeConfig: Required<Pick<AnalytiqConfig, "token" | "endpoint" | "sessionStorageKey">> | undefined;
+let deliveryCallback: AnalytiqConfig["onDelivery"];
 let clickListener: ((event: MouseEvent) => void) | undefined;
 
 function isBrowser(): boolean {
@@ -98,10 +107,14 @@ function getClickProperties(target: EventTarget | null): Record<string, unknown>
   return properties;
 }
 
+function reportDelivery(result: DeliveryResult): void {
+  deliveryCallback?.(result);
+}
+
 function send(payload: IngestPayload, endpoint: string): void {
   const body = JSON.stringify(payload);
 
-  if (isBrowser() && navigator.sendBeacon) {
+  if (!deliveryCallback && isBrowser() && navigator.sendBeacon) {
     const blob = new Blob([body], { type: "application/json" });
 
     if (navigator.sendBeacon(endpoint, blob)) {
@@ -116,7 +129,28 @@ function send(payload: IngestPayload, endpoint: string): void {
     },
     body,
     keepalive: true
-  }).catch(() => undefined);
+  })
+    .then(async (response) => {
+      if (response.ok) {
+        reportDelivery({ eventName: payload.eventName, ok: true, status: response.status });
+        return;
+      }
+
+      const body = (await response.json().catch(() => ({}))) as { error?: unknown };
+      reportDelivery({
+        eventName: payload.eventName,
+        ok: false,
+        status: response.status,
+        error: typeof body.error === "string" ? body.error : `Request failed with ${response.status}`
+      });
+    })
+    .catch((error: unknown) => {
+      reportDelivery({
+        eventName: payload.eventName,
+        ok: false,
+        error: error instanceof Error ? error.message : "Network request failed"
+      });
+    });
 }
 
 export function init(config: AnalytiqConfig): void {
@@ -125,6 +159,7 @@ export function init(config: AnalytiqConfig): void {
     endpoint: config.endpoint ?? defaultEndpoint,
     sessionStorageKey: config.sessionStorageKey ?? defaultSessionStorageKey
   };
+  deliveryCallback = config.onDelivery;
 
   if (config.autoClicks ?? true) {
     enableClickTracking();

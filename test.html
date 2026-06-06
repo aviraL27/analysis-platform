@@ -155,7 +155,16 @@
           token: token,
           endpoint: "http://localhost:3001/ingest",
           autoClicks: false,
-          autoPageviews: false
+          autoPageviews: false,
+          onDelivery: (result) => {
+            if (result.ok) {
+              log(`Accepted: ${result.eventName} event (HTTP ${result.status}).`, true);
+              return;
+            }
+
+            const status = result.status ? `HTTP ${result.status}: ` : "";
+            log(`Rejected: ${result.eventName} event (${status}${result.error}).`);
+          }
         });
         document.getElementById("sdk-status").innerText = `INITIALIZED (TOKEN: ${token.slice(0, 8)}...)`;
         document.getElementById("sdk-status").style.color = "#16a34a";
@@ -172,7 +181,7 @@
     if (!window.analytiq) return log("SDK not loaded.");
     try {
       window.analytiq.page();
-      log("Dispatched: pageview event.", true);
+      log("Sending: pageview event.");
     } catch(e) {
       log(`Error: ${e.message}`);
     }
@@ -184,7 +193,7 @@
       window.analytiq.track("click", {
         properties: { tag: "button", text: "Click Test Button" }
       });
-      log("Dispatched: click event.", true);
+      log("Sending: click event.");
     } catch(e) {
       log(`Error: ${e.message}`);
     }
@@ -196,7 +205,7 @@
       window.analytiq.track("signup", {
         properties: { plan: "pro", source: "test-bench" }
       });
-      log("Dispatched: signup event (custom properties).", true);
+      log("Sending: signup event (custom properties).");
     } catch(e) {
       log(`Error: ${e.message}`);
     }

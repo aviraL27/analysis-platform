@@ -6,6 +6,20 @@ export function hostnameFromUrl(value: string): string | null {
   }
 }
 
+function normalizeDomainEntry(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized.includes("://")) {
+    return hostnameFromUrl(normalized);
+  }
+
+  return normalized.split("/")[0]?.split(":")[0] ?? null;
+}
+
 export function isDomainAllowed(url: string, whitelist: string[]): boolean {
   if (whitelist.length === 0) {
     return true;
@@ -18,7 +32,7 @@ export function isDomainAllowed(url: string, whitelist: string[]): boolean {
   }
 
   return whitelist.some((entry) => {
-    const normalized = entry.trim().toLowerCase();
+    const normalized = normalizeDomainEntry(entry);
 
     if (!normalized) {
       return false;
