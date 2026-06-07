@@ -1,12 +1,25 @@
 {
   "name": "@analytiq/sdk",
   "version": "0.1.0",
-  "private": true,
+  "description": "Browser analytics SDK for Analytiq.",
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsup src/index.ts --format iife --globalName analytiq --minify --dts --outDir dist",
+    "build": "tsup",
     "dev": "tsup src/index.ts --format iife --globalName analytiq --watch --outDir dist",
     "lint": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

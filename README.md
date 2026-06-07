@@ -238,10 +238,47 @@ The ingestion API validates payloads, checks tenant token/domain/rate limit, enq
 
 ## Browser SDK
 
-The SDK builds to `apps/sdk/dist/index.global.js` and exposes `window.analytiq`:
+Build the installable SDK package:
+
+```bash
+npm run build --workspace @analytiq/sdk
+```
+
+During local development, install it in another project using the path to this
+repository's SDK directory. From this machine, that command is:
+
+```bash
+npm install "D:/Coding/analytics project/apps/sdk"
+```
+
+In a React/Vite application, put the initialization in the browser entry file
+(`src/main.tsx`, `src/main.jsx`, `src/index.tsx`, or equivalent), before the app
+is rendered:
+
+```ts
+import { init } from "@analytiq/sdk";
+
+init({
+  token: "00000000-0000-0000-0000-000000000000",
+  endpoint: "http://localhost:3001/ingest"
+});
+```
+
+That `init(...)` call is the one line that starts tracking. It sends an
+automatic `pageview` and enables automatic click tracking by default. Import
+and call `track` anywhere after initialization for custom events:
+
+```ts
+import { track } from "@analytiq/sdk";
+
+track("signup", { properties: { plan: "pro" } });
+```
+
+For a plain HTML project, the ingestion API serves the built browser bundle at
+`/sdk`. Put these scripts near the end of `<body>`, before `</body>`:
 
 ```html
-<script src="/path/to/index.global.js"></script>
+<script src="http://localhost:3001/sdk"></script>
 <script>
   analytiq.init({
     token: "00000000-0000-0000-0000-000000000000",
@@ -250,7 +287,8 @@ The SDK builds to `apps/sdk/dist/index.global.js` and exposes `window.analytiq`:
 </script>
 ```
 
-`init` sends an automatic `pageview` by default and enables automatic click tracking. Custom events can be sent with `analytiq.track("signup", { properties: { plan: "pro" } })`.
+The tracked project's hostname must be included in the tenant's domain
+whitelist. An empty whitelist allows every hostname.
 
 ## Dashboard
 
