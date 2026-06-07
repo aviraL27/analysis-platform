@@ -48,7 +48,7 @@ export function createServer({ config, pool }: ServerDependencies): express.Expr
 
   app.disable("x-powered-by");
   app.use(helmet());
-  app.use(cors({ origin: config.frontendOrigin, credentials: true }));
+  app.use(cors({ origin: config.frontendOrigins, credentials: true }));
   app.use(express.json({ limit: "64kb" }));
 
   app.get("/health", (_request, response) => {

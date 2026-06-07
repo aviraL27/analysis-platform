@@ -23,7 +23,7 @@ function isWorkerEventPayload(payload: unknown): payload is WorkerEventPayload {
 export function createRealtimeServer(httpServer: HttpServer, config: DashboardConfig, pool: Pool): IOServer {
   const io = new Server(httpServer, {
     cors: {
-      origin: config.frontendOrigin,
+      origin: config.frontendOrigins,
       credentials: true
     }
   });

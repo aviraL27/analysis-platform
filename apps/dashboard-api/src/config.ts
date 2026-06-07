@@ -5,7 +5,7 @@ dotenv.config({ path: path.resolve(process.cwd(), "../../.env") });
 
 export interface DashboardConfig {
   port: number;
-  frontendOrigin: string;
+  frontendOrigins: string[];
   supabaseUrl?: string;
   supabaseJwtSecret: string;
   workerRealtimeToken?: string;
@@ -37,10 +37,22 @@ function readNumberEnv(name: string, fallback: number): number {
   return value;
 }
 
+function readOriginsEnv(name: string, fallback: string[]): string[] {
+  const origins = process.env[name]
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins?.length ? origins : fallback;
+}
+
 export function getConfig(): DashboardConfig {
   const config: DashboardConfig = {
     port: readNumberEnv("DASHBOARD_API_PORT", 3002),
-    frontendOrigin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173",
+    frontendOrigins: readOriginsEnv("FRONTEND_ORIGIN", [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173"
+    ]),
     supabaseJwtSecret: readRequiredEnv("SUPABASE_JWT_SECRET")
   };
 

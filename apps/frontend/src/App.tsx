@@ -757,6 +757,17 @@ export function App() {
   }, [accessToken, debouncedEventName, range]);
 
   useEffect(() => {
+    setTenant(null);
+    setOverview(emptyOverview);
+    setTimeseries([]);
+    setRealtime(emptyRealtime);
+    setEvents([]);
+    setFunnels([]);
+    setLiveEvents([]);
+    setError(null);
+  }, [accessToken]);
+
+  useEffect(() => {
     if (!authReady) {
       return;
     }
